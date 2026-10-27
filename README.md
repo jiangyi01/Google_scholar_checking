@@ -1,65 +1,69 @@
 # ScholarBar
 
+English | [简体中文](README.zh-CN.md)
+
 A macOS menu-bar widget that shows your Google Scholar citation count and tells you which paper just got cited.
-（macOS 菜单栏小组件：实时显示 Google Scholar 总引用数，并记录每篇论文的新增引用。）
 
-## 功能
+## Features
 
-- **菜单栏**：🎓 总引用数，有新引用时显示绿色 `+N`；右键菜单可刷新 / 打开主页 / 设置 / 退出。
-- **弹窗面板**：总引用、h-index、i10、近 7 / 30 天增量、按年引用柱状图；
-  「最新引用」列出哪篇论文多了几次引用（点击查看最新的施引文献），「全部论文」按引用数排序。
-- **通知**：有新引用时推送系统通知。
-- **OpenAlex 补位**：Google Scholar 暂时限制自动访问（CAPTCHA / 429）时，自动改用
-  [OpenAlex](https://openalex.org) 的开放 API 继续提示新增引用（标注 “OpenAlex”）；
-  总引用数始终以 Scholar 为准，Scholar 恢复后同一条引用不会重复提醒。
-- **入口**：Dock / 桌面 / 启动台点图标即打开面板（菜单栏图标被刘海挡住时改为独立窗口，开在鼠标所在的屏幕）；可设为登录时自动启动。
+- **Menu bar**: 🎓 your total citations, plus a green `+N` when new citations arrive. Right-click for Refresh / Open profile / Settings / Quit.
+- **Popover panel**: total citations, h-index, i10-index, change over the last 7 / 30 days, and a citations-per-year chart.
+  - **Recent** lists which papers gained citations and when. Click a row to see the newest citing papers.
+  - **All papers** lists your papers sorted by citations.
+- **Notifications** when new citations show up.
+- **OpenAlex fallback**: when Google Scholar temporarily limits automatic access (CAPTCHA / HTTP 429), ScholarBar switches to the [OpenAlex](https://openalex.org) open API to keep reporting new citations, tagged "OpenAlex".
+  - The headline total always comes from Scholar.
+  - Once Scholar is back, citations OpenAlex already reported are not announced a second time.
+- **Easy to open**: click the app icon in the Dock, on the Desktop or in Launchpad to open the panel. If the menu-bar icon is hidden behind the notch, the panel opens as a regular window on the screen your mouse is on. ScholarBar can also start at login.
 
-## 安装
+The interface is in Chinese.
 
-需要 macOS 14+ 和 Swift 工具链（只装 Command Line Tools 即可，不需要 Xcode）。
+## Install
+
+Requires macOS 14+ and a Swift toolchain. The Command Line Tools are enough; you don't need Xcode.
 
 ```bash
 ./build_app.sh --run
 ```
 
-构建后安装到 `~/Applications/ScholarBar.app`（ad-hoc 签名）并启动。首次打开时粘贴自己的
-Scholar 个人主页链接（`https://scholar.google.com/citations?user=…`）即可。
+This builds the app, installs it to `~/Applications/ScholarBar.app` (ad-hoc signed) and launches it. On first launch, paste your Scholar profile link (`https://scholar.google.com/citations?user=…`).
 
-可选：在设置里填一个免费的 OpenAlex API key（在 <https://openalex.org/settings/api> 自行申请），
-否则与同一网络的其他用户共享 OpenAlex 每日免费额度。key 存在登录钥匙串里。
+Optional: paste a free OpenAlex API key in Settings (get one yourself at <https://openalex.org/settings/api>). Without a key, ScholarBar shares OpenAlex's free daily allowance with everyone else on your network. The key is stored in your login Keychain.
 
-## 对 Google Scholar 的访问方式
+## How ScholarBar accesses Google Scholar
 
-Scholar 没有官方 API，本工具以较低频率读取**公开**的个人主页：
+Scholar has no official API. ScholarBar reads your **public** profile page, and only rarely:
 
-- 默认每 2 小时一次（可选 1–24 小时，±20% 随机间隔），手动刷新至少间隔 5 分钟；
-- 凌晨 1–7 点不自动刷新；
-- 被要求验证后依次退避 6 / 12 / 24 小时，并在之后一周内自动放慢到每 6 小时一次；
-- 每次被拦截都记录在 `~/Library/Application Support/ScholarBar/blocks.log`。
+- Every 2 hours by default. You can choose 1–24 hours, and each interval varies by ±20%.
+- A manual refresh needs at least 5 minutes since the last one.
+- No automatic refreshes between 1 and 7 am.
+- After Scholar asks for verification, ScholarBar backs off for 6, then 12, then 24 hours. For the week after that it refreshes at most every 6 hours.
+- Every block is logged to `~/Library/Application Support/ScholarBar/blocks.log`.
 
-工具不会尝试绕过 Scholar 的验证；受限期间用 OpenAlex 补位。
+ScholarBar never tries to get around Scholar's verification. While Scholar is limiting access, OpenAlex fills in.
 
-## 命令行
+## Command line
 
 ```bash
-.build/release/ScholarBar --check <主页链接或 user ID>   # 抓取一次并打印结果
+.build/release/ScholarBar --check <profile URL or user ID>   # fetch once and print the result
 ~/Applications/ScholarBar.app/Contents/MacOS/ScholarBar --login-item on|off|status
 ```
 
-调试用：`SCHOLARBAR_STATE_DIR=<目录>` 使用临时数据目录；`--snapshot out.png` /
-`--snapshot-window out.png` 把面板渲染成图片。
+For debugging:
+- `SCHOLARBAR_STATE_DIR=<dir>` uses a throwaway data folder.
+- `--snapshot out.png` and `--snapshot-window out.png` render the panel to an image.
 
-## 数据
+## Data
 
-全部保存在本机：`~/Library/Application Support/ScholarBar/state.json`（引用快照、新增记录、历史总数）。
+Everything stays on your Mac, in `~/Library/Application Support/ScholarBar/state.json`: the citation snapshot, the log of new citations, and the history of totals.
 
-## 项目结构
+## Project layout
 
-| 文件 | 作用 |
+| File | Purpose |
 |---|---|
-| `ScholarAPI.swift` | 读取并解析 Scholar 个人主页 |
-| `OpenAlexAPI.swift` / `OpenAlexKey.swift` | OpenAlex 论文匹配与引用数查询；API key 钥匙串存取 |
-| `AppModel.swift` / `Models.swift` | 调度、退避、差异比较、OpenAlex 补位与去重、持久化 |
-| `PopoverView.swift` / `StatusBarController.swift` / `App.swift` | 菜单栏、弹窗、窗口与启动入口 |
-| `Notifier.swift` | 系统通知 |
-| `tools/make_icon.swift` | 生成 `Resources/AppIcon.icns` |
+| `ScholarAPI.swift` | Fetches and parses the Scholar profile page |
+| `OpenAlexAPI.swift` / `OpenAlexKey.swift` | Matches papers to OpenAlex and reads their citation counts; Keychain storage for the API key |
+| `AppModel.swift` / `Models.swift` | Scheduling, backoff, diffing, OpenAlex fallback and de-duplication, persistence |
+| `PopoverView.swift` / `StatusBarController.swift` / `App.swift` | Menu-bar item, popover, window and app entry points |
+| `Notifier.swift` | System notifications |
+| `tools/make_icon.swift` | Generates `Resources/AppIcon.icns` |
