@@ -1,0 +1,7 @@
+.build/
+.swiftpm/
+*.xcodeproj/
+.DS_Store
+# Local app data never belongs in the repo
+state.json
+blocks.log
